@@ -99,7 +99,9 @@
     <Compile Include="TestBase.cs" />
     <Compile Include="Tests.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Data\" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="Drivers\chromedriver.exe" />
     <Content Include="extent-config.xml" />
@@ -109,7 +111,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="Data\Enviornment.json" />
     <None Include="license" />
     <None Include="packages.config" />
   </ItemGroup>
