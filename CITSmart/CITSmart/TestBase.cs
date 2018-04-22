@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using AventStack.ExtentReports;
+using AventStack.ExtentReports.Reporter;
 using Microsoft.VisualStudio.TestTools.UITesting;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenQA.Selenium;
@@ -35,6 +37,7 @@ namespace CITSmart
         public ExtentReports Extent;
         public static ExtentTest Test;
         public static Screenshot Screenshot;
+        public ExtentHtmlReporter HtmlReporter;
 
         #endregion
 
@@ -44,13 +47,61 @@ namespace CITSmart
         [TestInitialize()]
         public void MyTestInitialize()
         {
-            Driver.Navigate().GoToUrl(new Uri("https://google.com"));
+            SetEnviornment();
+            Driver.Navigate().GoToUrl(Url);
+            Driver.Manage().Window.Maximize();
+
+            TestResultsDirectory = TestContext.TestResultsDirectory;
+
+            ExtentFileName = Path.Combine(TestResultsDirectory, TestContext.TestName + '_' + DateTime.Now.ToString("ddMMyyyy_hhmmss") + ".html");
+
+            if (!Directory.Exists(TestResultsDirectory))
+            {
+                Directory.CreateDirectory(TestResultsDirectory);
+            }
+
+            if (!File.Exists(ExtentFileName))
+            {
+                File.Create(ExtentFileName);
+            }
+
+            Playback.PlaybackError += Playback_PlaybackError;
+            HtmlReporter = new ExtentHtmlReporter(ExtentFileName);
+            Extent = new ExtentReports();
+            Extent.AttachReporter(HtmlReporter);
+
+            Test = Extent.CreateTest(TestContext.TestName + " " + Title, Description);
+
+            Driver.ElementValueChanged += FiringDriver_ElementValueChanged;
+            Driver.ElementClicked += Driver_ElementClicked;
         }
 
         [TestCleanup()]
         public void MyTestCleanup()
         {
+            if (TestContext.CurrentTestOutcome != UnitTestOutcome.Passed)
+            {
+                Test.Fail(GetErrorMessage());
+            }
 
+            Extent.Flush();
+            Driver.Quit();
+            WebDriver.Quit();
+            HtmlReporter.Stop();
+
+            using (StreamWriter sw = new StreamWriter(ExtentFileName, true))
+            {
+                sw.WriteLine("<style>img {border: 1px solid #ddd;border-radius: 4px;padding: 5px;width: 150px;} img:hover {box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);}</style><script>function OpenImage(src){ var newTab = window.open(); newTab.document.body.innerHTML = " + '"' + "<img src=" + '"' + " + src + " + '"' + ">" + '"' + ";}</script>");
+                sw.Close();
+            }
+
+            Extent = null;
+            HtmlReporter = null;
+            Test = null;
+            Logger = null;
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            ExecuteCmd("taskkill /im chromedriver.exe /f /t");
         }
 
         #endregion
@@ -69,7 +120,107 @@ namespace CITSmart
 
         private TestContext _testContextInstance;
 
+        #region Events
+
+        public void FiringDriver_ElementValueChanged(object sender, WebElementEventArgs e)
+        {
+            Screenshot = ((ITakesScreenshot)Driver).GetScreenshot();
+
+            EvidenceFileName = Path.Combine(TestResultsDirectory, "evidence" + DateTime.Now.ToString("ddMMyyyyThhmmss") + ".png");
+
+            Screenshot.SaveAsFile(EvidenceFileName, ScreenshotImageFormat.Png);
+
+            TestInfo = "<h5>" + Logger + "</h5><br/>ElementValueChanged: " + GetDescription(e) + "<br/><a target='_blank' onclick=OpenImage('data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "')><img src='data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "' alt='Forest'></a>";
+
+            Test.Info(TestInfo);
+
+            File.Delete(EvidenceFileName);
+
+            Logger = String.Empty;
+        }
+
+        public void FiringDriver_ElementValueChanging(object sender, WebElementEventArgs e)
+        {
+            Screenshot = ((ITakesScreenshot)Driver).GetScreenshot();
+
+            EvidenceFileName = Path.Combine(TestResultsDirectory, "evidence" + DateTime.Now.ToString("ddMMyyyyThhmmss") + ".png");
+
+            Screenshot.SaveAsFile(EvidenceFileName, ScreenshotImageFormat.Png);
+
+            TestInfo = "<h5>" + Logger + "</h5><br/>ElementValueChanging: " + GetDescription(e) + "<br/><a target='_blank' onclick=OpenImage('data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "')><img src='data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "' alt='Forest'></a>";
+
+            Test.Info(TestInfo);
+
+            File.Delete(EvidenceFileName);
+
+            Logger = String.Empty;
+        }
+
+        private void Driver_ElementClicked(object sender, WebElementEventArgs e)
+        {
+            Screenshot = ((ITakesScreenshot)Driver).GetScreenshot();
+
+            EvidenceFileName = Path.Combine(TestResultsDirectory, "evidence" + DateTime.Now.ToString("ddMMyyyyThhmmss") + ".png");
+
+            Screenshot.SaveAsFile(EvidenceFileName, ScreenshotImageFormat.Png);
+
+            TestInfo = "<h5>" + Logger + "</h5><br/>ElementClicked: " + GetDescription(e) + "<br/><a target='_blank' onclick=OpenImage('data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "')><img src='data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "' alt='Forest'></a>";
+
+            Test.Info(TestInfo);
+
+            File.Delete(EvidenceFileName);
+
+            Logger = String.Empty;
+        }
+
+        public void FiringDriver_ElementClicking(object sender, WebElementEventArgs e)
+        {
+            Screenshot = ((ITakesScreenshot)Driver).GetScreenshot();
+
+            EvidenceFileName = Path.Combine(TestResultsDirectory, "evidence" + DateTime.Now.ToString("ddMMyyyyThhmmss") + ".png");
+
+            Screenshot.SaveAsFile(EvidenceFileName, ScreenshotImageFormat.Png);
+
+            TestInfo = "<h5>" + Logger + "</h5><br/>ElementClicking: " + GetDescription(e) + "<br/><a target='_blank' onclick=OpenImage('data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "')><img src='data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "' alt='Forest'></a>";
+
+            Test.Info(TestInfo);
+
+            File.Delete(EvidenceFileName);
+
+            Logger = String.Empty;
+        }
+
+        #endregion
+
         #region Methods
+        private void Playback_PlaybackError(object sender, PlaybackErrorEventArgs e)
+        {
+            Test.Fail(GetErrorMessage());
+        }
+
+        public void SetEnviornment()
+        {
+            using (StreamReader sr =
+                new StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Enviornment.txt")))
+            {
+                while (!sr.EndOfStream)
+                {
+                    string line = sr.ReadLine();
+                    if (line != null && line.Contains("Url:"))
+                    {
+                        Url = line.Split(new[] { "Url:" }, StringSplitOptions.None).Last().Trim();
+                    }
+                    if (line != null && line.Contains("User:"))
+                    {
+                        User = line.Split(new[] { "User:" }, StringSplitOptions.None).Last().Trim();
+                    }
+                    if (line != null && line.Contains("Password:"))
+                    {
+                        Password = line.Split(new[] { "Password:" }, StringSplitOptions.None).Last().Trim();
+                    }
+                }
+            }
+        }
 
         public static string ConvertImageToBase64(string fileName)
         {
@@ -85,7 +236,7 @@ namespace CITSmart
 
             Screenshot.SaveAsFile(EvidenceFileName, ScreenshotImageFormat.Png);
 
-            TestInfo = "<h5>" + message + "</h5><br/><a target='_blank' onclick=OpenImage('data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "')><img src='data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "' alt='Forest'></a>";
+            TestInfo = "<h5>CheckPoint: " + message + "</h5><br/><a target='_blank' onclick=OpenImage('data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "')><img src='data:image/png;base64," + ConvertImageToBase64(EvidenceFileName) + "' alt='Forest'></a>";
 
             if (condition)
             {
@@ -140,67 +291,54 @@ namespace CITSmart
 
         public static By GetSelectors(IWebElement element)
         {
-            #region Params
-
-            By by;
-
-            #endregion
-
             try
             {
-                by = By.Id("");
-
                 if (!string.IsNullOrEmpty(element.GetAttribute("Id")))
                 {
-                    by = By.Id(element.GetAttribute("Id"));
+                    return By.Id(element.GetAttribute("Id"));
                 }
 
                 if (!string.IsNullOrEmpty(element.GetAttribute("Name")))
                 {
-                    by = By.Name(element.GetAttribute("Name"));
+                    return By.Name(element.GetAttribute("Name"));
                 }
 
                 if (!string.IsNullOrEmpty(GenerateXpath(element)))
                 {
-                    by = By.XPath(GenerateXpath(element));
+                    return By.XPath(GenerateXpath(element));
                 }
 
-                if (!string.IsNullOrEmpty(element.GetAttribute("ClassName")))
+                if (!string.IsNullOrEmpty(element.GetAttribute("Class")))
                 {
-                    by = By.ClassName(element.GetAttribute("ClassName"));
+                    return By.ClassName(element.GetAttribute("Class"));
                 }
 
-                if (!string.IsNullOrEmpty(element.GetAttribute("CssSelector")))
+                if (!string.IsNullOrEmpty(element.GetAttribute("InnerText")))
                 {
-                    by = By.CssSelector(element.GetAttribute("CssSelector"));
-                }
-
-                if (!string.IsNullOrEmpty(element.GetAttribute("LinkText")))
-                {
-                    by = By.LinkText(element.GetAttribute("LinkText"));
-                }
-
-                if (!string.IsNullOrEmpty(element.GetAttribute("PartialLinkText")))
-                {
-                    by = By.PartialLinkText(element.GetAttribute("PartialLinkText"));
+                    return By.CssSelector(element.GetAttribute("InnerText"));
                 }
             }
             catch (Exception)
             {
-                by = By.Id(Guid.NewGuid().ToString());
+                return By.Id(Guid.NewGuid().ToString());
             }
 
-            return by;
+            return By.Id(Guid.NewGuid().ToString());
         }
 
-        public void Login(IWebElement user, IWebElement password, IWebElement confirmButton,
-            IWebElement elementToAssertion)
+        public void Login(By user, By password, By confirmButton,
+            By elementToAssertion)
         {
-            user.SendKeys(User);
-            password.SendKeys(Password);
-            confirmButton.Click();
+            Logger = "Set User: " + User;
+            GetElement(user).SendKeys(User);
 
-            Checkpoint(WaitElement(GetSelectors(elementToAssertion)), "Logins Efetuado Com Sucesso");
+            Logger = "Set Password: " + Password;
+            GetElement(password).SendKeys(Password);
+
+            Logger = "Click Confirm Button";
+            GetElement(confirmButton).Click();
+
+            Checkpoint(WaitElement(elementToAssertion), "Login Efetuado Com Sucesso");
         }
 
         public string GetErrorMessage()
@@ -280,6 +418,8 @@ namespace CITSmart
             list.Add(new KeyValuePair<string, string>("Output", process.StandardOutput.ReadToEnd()));
             list.Add(new KeyValuePair<string, string>("Error", process.StandardError.ReadToEnd()));
 
+            Playback.Wait(3000);
+
             return list;
         }
 
@@ -298,9 +438,15 @@ namespace CITSmart
         public static bool WaitElement(By by, int timeoutSeconds = 10)
         {
             int count = 0;
+            bool displayed = false;
 
-            while (Driver.FindElements(by).Count.Equals(0))
+            while (Driver.FindElements(by).Count.Equals(0) || !displayed)
             {
+                if (Driver.FindElements(by).Any(e => e.Displayed))
+                {
+                    displayed = true;
+                }
+
                 Playback.Wait(1000);
 
                 count++;
@@ -309,6 +455,7 @@ namespace CITSmart
                 {
                     break;
                 }
+
             }
 
             return Driver.FindElements(by).Count > 0;
