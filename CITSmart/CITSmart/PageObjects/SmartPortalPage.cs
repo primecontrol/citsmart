@@ -6,6 +6,11 @@ namespace CITSmart.PageObjects
     {
         #region Elements
 
+        public static By AcessoAoSistema(int timeoutSeconds = 10)
+        {
+            return By.XPath("//*[@id='header-toolbar-access-system']/a");
+        }
+
         public static By SolicitacoesCriadas(int timeoutSeconds = 10)
         {
             return By.Id("solicitacoes-criadas-content");
@@ -46,6 +51,15 @@ namespace CITSmart.PageObjects
         #region Actions
 
         #region Clicks
+
+        public static void ClickAcessoAoSistema(int timeoutSeconds = 10)
+        {
+            Logger = "Click Acesso Ao Sistema";
+            if (WaitElement(AcessoAoSistema(), timeoutSeconds))
+            {
+                GetElement(AcessoAoSistema(), timeoutSeconds).Click();
+            }
+        }
 
         public static void ClickConcluir(int timeoutSeconds = 10)
         {

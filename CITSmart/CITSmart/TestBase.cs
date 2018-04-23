@@ -446,7 +446,7 @@ namespace CITSmart
                 {
                     displayed = true;
                 }
-
+                
                 Playback.Wait(1000);
 
                 count++;
@@ -458,7 +458,7 @@ namespace CITSmart
 
             }
 
-            return Driver.FindElements(by).Count > 0;
+            return displayed;
         }
 
         #endregion
