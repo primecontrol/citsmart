@@ -13,12 +13,12 @@ namespace CITSmart.PageObjects
 
         public static By RequisicaoDeServicosEIncidentes(int timeoutSeconds = 10)
         {
-            return By.XPath("//*[@id='nav']/li[1]/ul/li/ul/li/a");
+            return By.XPath("//span[text()='Requisição de Serviços e Incidentes']");
         }
 
         public static By GerenciaDeRequisicaoEIncidente(int timeoutSeconds = 10)
         {
-            return By.XPath("//*[@id='nav']/li[1]/ul/li/a/span");
+            return By.XPath("//span[text()='Gerência de Requisição e Incidente']");
         }
 
         public static By ProcessosItil(int timeoutSeconds = 10)

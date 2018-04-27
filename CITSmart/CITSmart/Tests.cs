@@ -51,9 +51,6 @@ namespace CITSmart
         [TestMethod]
         public void CadastrarUmaSolicitacaoPeloPortal()
         {
-            Properties.Settings.Default.Ticket = "123";
-            Properties.Settings.Default.Save();
-
             Test.Info("Scenario #1: Cadastrar uma solicitação pelo Portal");
             EfetuarLogin("LUCAS", "1");
             SmartPortalPage.ClickPortifolio();
